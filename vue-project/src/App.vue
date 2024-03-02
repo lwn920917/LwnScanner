@@ -27,7 +27,8 @@
 </template>
 
 <script>
-
+// 在 Vue 组件的 <script> 部分
+import { MathpixMarkdownModel } from 'mathpix-markdown-it';
 export default {
   name: 'App',
   data() {
@@ -63,10 +64,22 @@ export default {
     },
 
     showInfo() {
-      this.infoContent =
+      /* 这里 */
+      this.infoContent = "";
+
+      // 示例 LaTeX 字符串
+      const latexString =
         `
-        
-      `;
+   
+  `;
+      const options = {
+      };
+      // 将 LaTeX 转换为 HTML
+      const htmlContent = MathpixMarkdownModel.markdownToHTML(latexString, options);
+
+      // 设置转换后的 HTML 到 infoContent 以在页面上显示
+      this.infoContent = htmlContent;
+
       this.$nextTick(() => {
         if (window.MathJax) {
           window.MathJax.typesetPromise().then(() => {
