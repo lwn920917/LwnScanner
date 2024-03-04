@@ -22,3 +22,5 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+scp -r ./dist/* root@39.105.195.249:/var/html/Scanner/Client/

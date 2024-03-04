@@ -22,7 +22,7 @@
         </div>
 
         <div class="button-container" style="display: flex; justify-content: space-between;">
-          <button @click="showInfo">Show Info</button>
+          <!--  <button @click="showInfo">Show Info</button> -->
           <!-- 新增的第二个按钮 -->
           <button @click="anotherAction">Another Action</button>
         </div>
@@ -59,11 +59,35 @@ export default {
       input.click();
     },
     handleImageSelect(event) {
+      /* 这里 */
+      this.infoContent = "";
       const file = event.target.files[0];
       const reader = new FileReader();
 
       reader.onload = (e) => {
         this.imageUrl = e.target.result;
+
+
+        // 创建 FormData 对象并添加文件
+        const formData = new FormData();
+        formData.append('image', file); // 假设后端接收的字段名为'image'
+
+        // 使用 fetch 发送 POST 请求
+        fetch('http://39.105.195.249:3334/upload_image', {
+          method: 'POST',
+          //body: formData, // 将文件作为请求体发送
+        })
+          .then(response => response.json()) // 解析JSON响应
+          .then(data => {
+            //console.log(data); // 打印响应数据
+            this.showInfo(data.text);
+          })
+          .catch(error => {
+            //console.error('Error:', error); // 打印遇到的错误
+            this.showInfo(error);
+          });
+
+
       };
 
       reader.readAsDataURL(file);
@@ -124,18 +148,11 @@ export default {
       });
     },
 
-    showInfo() {
-      /* 这里 */
-      this.infoContent = "";
-
-      // 示例 LaTeX 字符串
-      const latexString =
-        `aada
-      `;
+    showInfo(serverLatex) {
       const options = {
       };
       // 将 LaTeX 转换为 HTML
-      const htmlContent = MathpixMarkdownModel.markdownToHTML(latexString, options);
+      const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, options);
 
       // 设置转换后的 HTML 到 infoContent 以在页面上显示
       this.infoContent = htmlContent;
