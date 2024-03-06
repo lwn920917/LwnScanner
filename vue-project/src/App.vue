@@ -67,26 +67,21 @@ export default {
       reader.onload = (e) => {
         this.imageUrl = e.target.result;
 
-
-        // 创建 FormData 对象并添加文件
-        const formData = new FormData();
-        formData.append('image', file); // 假设后端接收的字段名为'image'
-
-        // 使用 fetch 发送 POST 请求
+        const base64String = e.target.result.split(',')[1];
         fetch('http://39.105.195.249:3334/upload_image', {
           method: 'POST',
-          //body: formData, // 将文件作为请求体发送
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ base64: base64String })
         })
-          .then(response => response.json()) // 解析JSON响应
+          .then(response => response.json())
           .then(data => {
-            //console.log(data); // 打印响应数据
             this.showInfo(data.text);
           })
           .catch(error => {
-            //console.error('Error:', error); // 打印遇到的错误
             this.showInfo(error);
           });
-
 
       };
 
