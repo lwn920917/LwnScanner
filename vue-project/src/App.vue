@@ -45,9 +45,9 @@ export default {
   },
   mounted() {
     // 从window对象显式访问MathJax
-    if (window.MathJax) {
+    /* if (window.MathJax) {
       window.MathJax.typeset();
-    }
+    } */
   },
 
   methods: {
@@ -152,13 +152,13 @@ export default {
       // 设置转换后的 HTML 到 infoContent 以在页面上显示
       this.infoContent = htmlContent;
 
-      this.$nextTick(() => {
+      /* this.$nextTick(() => {
         if (window.MathJax) {
           window.MathJax.typesetPromise().then(() => {
             console.log('MathJax typeset finished.');
           }).catch((err) => console.error('MathJax typesetPromise error:', err));
         }
-      });
+      }); */
     }
 
   }
@@ -167,7 +167,9 @@ export default {
 
 <style>
 #app {
-  text-align: center;
+  width: 600px;
+  height: 800px;
+  overflow: auto;
 }
 
 .container {
@@ -175,6 +177,8 @@ export default {
   align-items: flex-start;
   justify-content: space-between;
   /* 使子容器分布在左右两侧 */
+  max-width: 800px; /* 根据您的需要调整宽度 */
+  margin: 0 auto; /* 水平居中 */
 }
 
 .title {

@@ -1,0 +1,35 @@
+{
+    "manifest_version": 3,
+    "name": "TsScanner",
+    "version": "1.0",
+    "description": "A text scanner for your browser.",
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "permissions": [
+        "activeTab",
+        "storage"
+    ],
+    "action": {
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        },
+        "default_popup": "index.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content-script.js"]
+        }
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ]
+}
