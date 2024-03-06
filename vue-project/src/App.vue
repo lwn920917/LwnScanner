@@ -1,35 +1,20 @@
 <template>
   <div id="app">
-    <!-- 一级标题 -->
-    <h1 class="title">Welcome use scanner!</h1>
     <div class="container">
-      <!-- 左侧区域 -->
-      <div class="image-viewer-container">
-        <!-- 图片 -->
-        <div class="image-viewer">
-          <img :src="imageUrl" alt="Image">
-        </div>
-        <!-- 选择图片 -->
-        <button @click="handleClick">Choose Image</button>
-        <input type="file" @change="handleImageSelect">
+      <div class="info-viewer" id="infoViewer" :class="{ 'loading': isLoading }" @paste="handlePaste"
+        @mousedown="handleStart" @mouseup="handleEnd" @touchstart="handleStart" @touchend="handleEnd">
+        <div v-if="isLoading">Loading...</div> <!-- 显示加载状态 -->
+        <div class="content-wrapper" v-else-if="infoContent" v-html="infoContent"></div>
+        <div v-else>📋 Click here or paste a screenshot</div>
       </div>
 
-      <!-- 右侧区域 -->
-      <div class="info-viewer-container">
-        <div class="info-viewer" id="infoViewer">
-          <div class="content-wrapper" v-if="infoContent" v-html="infoContent"></div>
-          <div v-else>No Information</div>
-        </div>
-
-        <div class="button-container" style="display: flex; justify-content: space-between;">
-          <!--  <button @click="showInfo">Show Info</button> -->
-          <!-- 新增的第二个按钮 -->
-          <button @click="anotherAction">Another Action</button>
-        </div>
+      <div class="button-container">
+        <button @click="copyContent">Copy Content</button>
       </div>
     </div>
   </div>
 </template>
+
 
 <script>
 // 在 Vue 组件的 <script> 部分
@@ -39,19 +24,25 @@ export default {
   name: 'App',
   data() {
     return {
-      imageUrl: '',
       infoContent: '',
+      touchStartTime: 0, // 触摸开始时间
+      isLoading: false,
     };
   },
   mounted() {
-    // 从window对象显式访问MathJax
-    /* if (window.MathJax) {
-      window.MathJax.typeset();
-    } */
   },
 
   methods: {
-    handleClick() {
+    handleStart() {
+      this.touchStartTime = Date.now(); // 记录触摸开始的时间
+    },
+    handleEnd() {
+      const touchDuration = Date.now() - this.touchStartTime; // 计算触摸持续时间
+      if (touchDuration < 500) { // 如果触摸时间少于500毫秒，视为点击
+        this.localAction();
+      }
+    },
+    localAction() {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
@@ -59,33 +50,68 @@ export default {
       input.click();
     },
     handleImageSelect(event) {
-      /* 这里 */
       this.infoContent = "";
       const file = event.target.files[0];
       const reader = new FileReader();
-
-      reader.onload = (e) => {
-        this.imageUrl = e.target.result;
-
-        const base64String = e.target.result.split(',')[1];
-        fetch('http://39.105.195.249:3334/upload_image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ base64: base64String })
-        })
-          .then(response => response.json())
-          .then(data => {
-            this.showInfo(data.text);
-          })
-          .catch(error => {
-            this.showInfo(error);
-          });
-
-      };
-
       reader.readAsDataURL(file);
+      reader.onload = (e) => {
+        const base64String = e.target.result.split(',')[1];
+        this.requestServer(base64String);
+      };
+    },
+
+    handlePaste(event) {
+      if (event.clipboardData && event.clipboardData.items) {
+        const items = event.clipboardData.items;
+
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf('image') !== -1) {
+            // 找到了图像数据，创建一个Blob对象
+            const blob = items[i].getAsFile();
+
+            // 可以将Blob对象转换为DataURL，或直接使用Blob对象
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const base64String = e.target.result.split(',')[1];
+              this.requestServer(base64String);
+            };
+            reader.readAsDataURL(blob);
+          }
+        }
+      }
+    },
+
+    requestServer(base64String) {
+      console.log("requestServer start...");
+      this.isLoading = true;
+      fetch('http://39.105.195.249:3334/upload_image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ base64: base64String })
+      })
+        .then(response => response.json())
+        .then(data => {
+          this.showInfo(data.text);
+        })
+        .catch(error => {
+          this.showInfo(error);
+        })
+        .finally(() => {
+          this.isLoading = false; // 加载结束
+        });
+    },
+
+
+    showInfo(serverLatex) {
+      console.log(serverLatex);
+      const options = {
+      };
+      // 将 LaTeX 转换为 HTML
+      const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, options);
+      // 设置转换后的 HTML 到 infoContent 以在页面上显示
+      this.infoContent = htmlContent;
     },
 
     convertHtmlToMarkdown(html) {
@@ -127,7 +153,7 @@ export default {
       });
       return turndownService.turndown(html);
     },
-    anotherAction() {
+    copyContent() {
 
       // 调用convertHtmlToMarkdown方法进行转换
       const markdown = this.convertHtmlToMarkdown(this.infoContent);
@@ -143,107 +169,112 @@ export default {
       });
     },
 
-    showInfo(serverLatex) {
-      const options = {
-      };
-      // 将 LaTeX 转换为 HTML
-      const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, options);
-
-      // 设置转换后的 HTML 到 infoContent 以在页面上显示
-      this.infoContent = htmlContent;
-
-      /* this.$nextTick(() => {
-        if (window.MathJax) {
-          window.MathJax.typesetPromise().then(() => {
-            console.log('MathJax typeset finished.');
-          }).catch((err) => console.error('MathJax typesetPromise error:', err));
-        }
-      }); */
-    }
 
   }
 };
 </script>
 
+
 <style>
-#app {
-  width: 600px;
-  height: 800px;
-  overflow: auto;
-}
-
 .container {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  /* 使子容器分布在左右两侧 */
-  max-width: 800px; /* 根据您的需要调整宽度 */
-  margin: 0 auto; /* 水平居中 */
-}
-
-.title {
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-.image-viewer-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.image-viewer {
-  width: 400px;
-  height: 400px;
-  border: 1px solid #ccc;
+  /* 不设置最大宽度或固定宽度，允许容器根据内容调整大小 */
+  margin-left: 20px;
   margin-right: 20px;
 }
 
-.image-viewer img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-button {
-  padding: 10px 20px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  background-color: #4CAF50;
-  color: #fff;
-  cursor: pointer;
-  margin: 0 10px;
-  margin-top: 10px;
-}
-
-input[type="file"] {
-  display: none;
-}
-
-.info-viewer-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .info-viewer {
-  width: 400px;
-  height: 400px;
-  border: 1px solid #ccc;
-  margin-left: 20px;
-  /* 保持与图片查看器一致的间距 */
+  cursor: pointer;
+  padding: 20px;
+  border-radius: 10px;
+  background: #f0f9ff;
+  min-width: 400px;
+  /* 设置最小宽度 */
+  min-height: 400px;
+  /* 设置最小高度 */
+  border: 2px dashed #007BFF;
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
+  margin-bottom: 20px;
+  font-size: 20px;
+  /* 在 info-viewer 下方添加一些空间 */
+  overflow: auto;
+  /* 如果内容超出了视图，显示滚动条 */
+  /* 容器宽度将根据父容器或浏览器窗口的宽度自适应 */
+  transition: all 0.3s ease;
+  /* 平滑过渡效果 */
 }
 
-.content-wrapper {
-  width: 100%;
-  height: 100%;
-  overflow-x: auto;
-  /* 水平滚动 */
-  overflow-y: auto;
-  /* 垂直滚动 */
+.info-viewer:hover {
+  background-color: #e2f3ff;
+  /* 鼠标悬停时的背景色 */
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+  /* 鼠标悬停时的阴影 */
+}
+
+.info-viewer:before {
+  display: block;
+  /* 使伪元素像块级元素一样显示 */
+  margin-bottom: 10px;
+  /* 伪元素和内容之间的间距 */
+}
+
+.button-container {
+  width: calc(100% - 20px);
+  /* 减去边距的总宽度 */
+  display: flex;
+  justify-content: space-evenly;
+  /* 在按钮周围均匀分配空间 */
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background-color: #4CAF50;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin: 10px;
+  /* 增加顶部和底部的边距 */
+}
+
+button:hover {
+  background-color: #367B37;
+}
+
+button:active {
+  background-color: #2E6E2E;
+}
+
+/* 加载动画样式 */
+.loader {
+  border: 5px solid #f3f3f3;
+  /* Light grey */
+  border-top: 5px solid #3498db;
+  /* Blue */
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 加载时禁用info-viewer的交互 */
+.loading {
+  pointer-events: none;
+  /* 禁用鼠标事件 */
+  opacity: 0.5;
+  /* 降低透明度以表示不可交互 */
 }
 </style>
