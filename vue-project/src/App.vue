@@ -1,11 +1,16 @@
 <template>
   <div id="app">
     <div class="container">
-      <div class="info-viewer" id="infoViewer" :class="{ 'loading': isLoading }" @paste="handlePaste"
-        @mousedown="handleStart" @mouseup="handleEnd" @touchstart="handleStart" @touchend="handleEnd">
+      <!-- 新增的显示图片区域 -->
+      <div class="image-container" :class="{ 'no-image': !imageUrl }" @click="localAction">
+        <img v-if="imageUrl" :src="imageUrl" alt="截屏Alt+s/本地" class="fixed-image">
+        <div v-else class="no-image-text">📷 图片为空</div>
+      </div>
+
+      <div class="info-viewer" id="infoViewer" :class="{ 'loading': isLoading }" @paste="handlePaste">
         <div v-if="isLoading">Loading...</div> <!-- 显示加载状态 -->
         <div class="content-wrapper" v-else-if="infoContent" v-html="infoContent"></div>
-        <div v-else>📋 Click here or paste a screenshot</div>
+        <div v-else></div>
       </div>
 
       <div class="button-container">
@@ -24,24 +29,34 @@ export default {
   name: 'App',
   data() {
     return {
+      imageUrl: '',
       infoContent: '',
-      touchStartTime: 0, // 触摸开始时间
       isLoading: false,
     };
   },
+
+  created() {
+    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
+      // 确保在 Chrome 扩展环境中
+      chrome.runtime.onMessage.addListener((request) => {
+        if (request.action === "update-image") {
+          this.imageUrl = request.imageUrl;
+          const base64String = request.imageUrl.split(',')[1];
+          this.requestServer(base64String);
+        }
+      });
+    } else {
+      // 在非 Chrome 扩展环境中的处理逻辑
+      // 例如，可以设置一些默认行为或者忽略 chrome.runtime 相关的功能
+      console.log("Running outside of a Chrome Extension.");
+    }
+  },
+
   mounted() {
   },
 
   methods: {
-    handleStart() {
-      this.touchStartTime = Date.now(); // 记录触摸开始的时间
-    },
-    handleEnd() {
-      const touchDuration = Date.now() - this.touchStartTime; // 计算触摸持续时间
-      if (touchDuration < 500) { // 如果触摸时间少于500毫秒，视为点击
-        this.localAction();
-      }
-    },
+
     localAction() {
       const input = document.createElement('input');
       input.type = 'file';
@@ -50,11 +65,11 @@ export default {
       input.click();
     },
     handleImageSelect(event) {
-      this.infoContent = "";
       const file = event.target.files[0];
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (e) => {
+        this.imageUrl = e.target.result;
         const base64String = e.target.result.split(',')[1];
         this.requestServer(base64String);
       };
@@ -83,6 +98,7 @@ export default {
 
     requestServer(base64String) {
       console.log("requestServer start...");
+      this.infoContent = "";
       this.isLoading = true;
       fetch('http://39.105.195.249:3334/upload_image', {
         method: 'POST',
@@ -91,12 +107,34 @@ export default {
         },
         body: JSON.stringify({ base64: base64String })
       })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            // 直接使用 showInfo 显示网络错误信息
+            this.showInfo(`网络错误: ${response.status} (${response.statusText})`);
+            return Promise.reject(`网络错误: ${response.status} (${response.statusText})`);
+          }
+          return response.text(); // 先获取文本内容
+        })
+        .then(text => {
+          try {
+            return JSON.parse(text); // 安全地尝试解析 JSON
+          } catch (e) {
+            // 直接使用 showInfo 显示 JSON 解析错误
+            this.showInfo('JSON 解析错误: 无效的响应格式');
+            return Promise.reject('JSON 解析错误: 无效的响应格式');
+          }
+        })
         .then(data => {
-          this.showInfo(data.text);
+          if (data && data.text) {
+            this.showInfo(data.text);
+          } else {
+            // 直接使用 showInfo 显示数据错误信息
+            this.showInfo('错误: 服务器未返回预期数据');
+          }
         })
         .catch(error => {
-          this.showInfo(error);
+          // 这里处理由于 reject 被调用而产生的错误，此时错误信息已经通过 showInfo 显示，所以不需要额外操作
+          console.error(`请求失败: ${error}`);
         })
         .finally(() => {
           this.isLoading = false; // 加载结束
@@ -104,14 +142,20 @@ export default {
     },
 
 
+
     showInfo(serverLatex) {
-      console.log(serverLatex);
       const options = {
       };
-      // 将 LaTeX 转换为 HTML
-      const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, options);
-      // 设置转换后的 HTML 到 infoContent 以在页面上显示
-      this.infoContent = htmlContent;
+      if (typeof serverLatex === 'string') {
+        // 将 LaTeX 转换为 HTML
+        const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, options);
+        // 设置转换后的 HTML 到 infoContent 以在页面上显示
+        this.infoContent = htmlContent;
+      } else {
+        // 如果 serverLatex 不是字符串，显示一条默认消息或进行其他处理
+        console.error('serverLatex 不是一个有效的字符串:', serverLatex);
+        this.infoContent = "未检测到文本";
+      }
     },
 
     convertHtmlToMarkdown(html) {
@@ -181,6 +225,41 @@ export default {
   margin-left: 20px;
   margin-right: 20px;
 }
+
+
+.image-container {
+  margin-bottom: 5px;
+  border-radius: 10px;
+  background: #f0f9ff;
+  min-width: 400px;
+  /* 你想要的固定宽度 */
+  height: 300px;
+  /* 你想要的固定高度 */
+  overflow: auto;
+  /* 如果内容超出容器，显示滚动条 */
+  border: 1px solid #ccc;
+}
+
+.no-image-text {
+  font-size: 20px;
+  text-align: center;
+  /* 保持文本水平居中 */
+  display: flex;
+  /* 将 .no-image-text 也设置为 Flex 容器 */
+  justify-content: center;
+  /* 在主轴方向上（默认为水平）居中对齐子元素 */
+  align-items: center;
+  /* 在交叉轴方向上（默认为垂直）居中对齐子元素 */
+  height: 100%;
+  /* 让 .no-image-text 占满整个 .image-container 的高度 */
+}
+
+img.fixed-image {
+  display: block;
+  /* 避免底部空白 */
+}
+
+
 
 .info-viewer {
   cursor: pointer;

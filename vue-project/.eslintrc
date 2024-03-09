@@ -1,5 +1,6 @@
 {
     "globals": {
+        "chrome": "readonly",
         "MathJax": "readonly"
       },
     "parser": "vue-eslint-parser",
