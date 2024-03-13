@@ -1,30 +1,33 @@
 <template>
   <div id="app">
     <div class="container">
-      <!-- 新增的显示图片区域 -->
-      <div class="image-container" :class="{ 'no-image': !imageUrl }" @click="localAction">
+      <div class="image-container" :class="{ 'no-image': !imageUrl, 'drag-over': isDragOver }" @paste="handlePaste"
+        @dragover.prevent="handleDragOver" @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave"
+        @drop.prevent="handleDrop">
         <img v-if="imageUrl" :src="imageUrl" alt="截屏Alt+s/本地" class="fixed-image">
-        <div v-else class="no-image-text">📷 图片为空</div>
+        <div v-else class="no-image-text">
+          此区域支持粘贴、拖拽、本地、截屏(Ctrl+Shift+S)<br>
+        </div>
       </div>
 
-      <div class="info-viewer" id="infoViewer" :class="{ 'loading': isLoading }" @paste="handlePaste">
-        <div v-if="isLoading">Loading...</div> <!-- 显示加载状态 -->
+      <div class="info-viewer" id="infoViewer" :class="{ 'loading': isLoading }">
+        <div v-if="isLoading">Loading...</div>
         <div class="content-wrapper" v-else-if="infoContent" v-html="infoContent"></div>
         <div v-else></div>
       </div>
 
       <div class="button-container">
-        <button @click="copyContent">Copy Content</button>
+        <button @click="localAction">本地</button>
+        <button @click="copyContent">复制</button>
       </div>
     </div>
   </div>
 </template>
 
-
 <script>
-// 在 Vue 组件的 <script> 部分
 import { MathpixMarkdownModel } from 'mathpix-markdown-it';
 import TurndownService from 'turndown';
+
 export default {
   name: 'App',
   data() {
@@ -32,188 +35,134 @@ export default {
       imageUrl: '',
       infoContent: '',
       isLoading: false,
+      isDragOver: false,
     };
   },
 
   created() {
-    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
-      // 确保在 Chrome 扩展环境中
-      chrome.runtime.onMessage.addListener((request) => {
-        if (request.action === "update-image") {
-          this.imageUrl = request.imageUrl;
-          const base64String = request.imageUrl.split(',')[1];
-          this.requestServer(base64String);
-        }
-      });
-    } else {
-      // 在非 Chrome 扩展环境中的处理逻辑
-      // 例如，可以设置一些默认行为或者忽略 chrome.runtime 相关的功能
-      console.log("Running outside of a Chrome Extension.");
-    }
-  },
-
-  mounted() {
+    this.setupChromeExtensionListener();
   },
 
   methods: {
+    setupChromeExtensionListener() {
+      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
+        chrome.runtime.onMessage.addListener((request) => {
+          if (request.action === "update-image") {
+            this.processImage(request.imageUrl);
+          }
+        });
+      } else {
+        console.log("Running outside of a Chrome Extension.");
+      }
+    },
+
+    processImage(imageDataUrl) {
+      this.imageUrl = imageDataUrl;
+      if (imageDataUrl) {
+        const base64String = imageDataUrl.split(',')[1];
+        this.requestServer(base64String);
+      }
+    },
 
     localAction() {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
-      input.onchange = (event) => this.handleImageSelect(event);
+      input.onchange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => this.processImage(e.target.result);
+          reader.readAsDataURL(file);
+        }
+      };
       input.click();
     },
-    handleImageSelect(event) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (e) => {
-        this.imageUrl = e.target.result;
-        const base64String = e.target.result.split(',')[1];
-        this.requestServer(base64String);
-      };
+
+    handleDragEnter() {
+      this.isDragOver = true;
+    },
+
+    handleDragLeave() {
+      this.isDragOver = false;
+    },
+
+    handleDrop(event) {
+      this.isDragOver = false;
+      const file = event.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => this.processImage(e.target.result);
+        reader.readAsDataURL(file);
+      } else {
+        this.showToast('请拖拽图片文件');
+      }
     },
 
     handlePaste(event) {
-      if (event.clipboardData && event.clipboardData.items) {
-        const items = event.clipboardData.items;
-
-        for (let i = 0; i < items.length; i++) {
-          if (items[i].type.indexOf('image') !== -1) {
-            // 找到了图像数据，创建一个Blob对象
-            const blob = items[i].getAsFile();
-
-            // 可以将Blob对象转换为DataURL，或直接使用Blob对象
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const base64String = e.target.result.split(',')[1];
-              this.requestServer(base64String);
-            };
-            reader.readAsDataURL(blob);
-          }
+      const items = event.clipboardData?.items;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          const reader = new FileReader();
+          reader.onload = (e) => this.processImage(e.target.result);
+          reader.readAsDataURL(blob);
+          break;
+        } else {
+          // 如果找到的不是图片类型，可以在这里给出提示
+          this.showToast('请粘贴图片内容');
         }
       }
     },
 
     requestServer(base64String) {
-      console.log("requestServer start...");
       this.infoContent = "";
       this.isLoading = true;
       fetch('http://39.105.195.249:3334/upload_image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64: base64String })
       })
-        .then(response => {
-          if (!response.ok) {
-            // 直接使用 showInfo 显示网络错误信息
-            this.showInfo(`网络错误: ${response.status} (${response.statusText})`);
-            return Promise.reject(`网络错误: ${response.status} (${response.statusText})`);
-          }
-          return response.text(); // 先获取文本内容
-        })
-        .then(text => {
-          try {
-            return JSON.parse(text); // 安全地尝试解析 JSON
-          } catch (e) {
-            // 直接使用 showInfo 显示 JSON 解析错误
-            this.showInfo('JSON 解析错误: 无效的响应格式');
-            return Promise.reject('JSON 解析错误: 无效的响应格式');
-          }
-        })
+        .then(response => response.ok ? response.json() : Promise.reject(`网络错误: ${response.statusText}`))
         .then(data => {
-          if (data && data.text) {
+          if (data?.text) {
             this.showInfo(data.text);
           } else {
-            // 直接使用 showInfo 显示数据错误信息
-            this.showInfo('错误: 服务器未返回预期数据');
+            this.showToast('服务器未返回预期数据');
           }
         })
-        .catch(error => {
-          // 这里处理由于 reject 被调用而产生的错误，此时错误信息已经通过 showInfo 显示，所以不需要额外操作
-          console.error(`请求失败: ${error}`);
-        })
-        .finally(() => {
-          this.isLoading = false; // 加载结束
-        });
+        .catch(error => console.log(`请求失败: ${error}`))
+        .finally(() => this.isLoading = false);
     },
 
-
+    showToast(message) {
+      alert(message);
+    },
 
     showInfo(serverLatex) {
-      const options = {
-      };
-      if (typeof serverLatex === 'string') {
-        // 将 LaTeX 转换为 HTML
-        const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, options);
-        // 设置转换后的 HTML 到 infoContent 以在页面上显示
-        this.infoContent = htmlContent;
-      } else {
-        // 如果 serverLatex 不是字符串，显示一条默认消息或进行其他处理
-        console.error('serverLatex 不是一个有效的字符串:', serverLatex);
-        this.infoContent = "未检测到文本";
-      }
+      const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, {});
+      this.infoContent = htmlContent;
     },
 
     convertHtmlToMarkdown(html) {
       const turndownService = new TurndownService();
-
       turndownService.addRule('tables', {
-        // 这个filter函数用来指定哪些元素会被当前规则处理
-        filter: function (node) {
-          return node.nodeName === 'TABLE';
-        },
-
-        // replacement函数定义了如何将捕获的HTML元素转换为Markdown
+        filter: node => node.nodeName === 'TABLE',
         replacement: function (content, node) {
-          var markdown = '';
-          var rows = node.querySelectorAll('tr');
-
-          // 遍历所有的行 <tr>
-          rows.forEach(function (row, rowIndex) {
-            var cells = row.querySelectorAll('td, th');
-            var rowMarkdown = '|';
-
-            // 遍历所有的单元格 <td> 或 <th>
-            cells.forEach(function (cell) {
-              // 获取单元格的文本内容，并添加到Markdown表格行
-              rowMarkdown += cell.textContent.trim() + '|';
-            });
-
-            // 添加当前行到Markdown表格，并添加一个换行符
-            markdown += rowMarkdown + '\n';
-
-            // 对于第一行，添加Markdown表格头分隔符
-            if (rowIndex === 0) {
-              markdown += '|' + ' --- |'.repeat(cells.length) + '\n';
-            }
-          });
-
-          return markdown;
+          return [...node.querySelectorAll('tr')].map(row =>
+            `| ${[...row.querySelectorAll('td, th')].map(cell => cell.textContent.trim()).join(' | ')} |`
+          ).join('\n') + '\n';
         }
       });
       return turndownService.turndown(html);
     },
+
     copyContent() {
-
-      // 调用convertHtmlToMarkdown方法进行转换
       const markdown = this.convertHtmlToMarkdown(this.infoContent);
-      // 输出转换后的Markdown内容
-      //console.log(markdown);
-      // 使用navigator.clipboard.writeText复制文本到剪贴板
-      navigator.clipboard.writeText(markdown).then(() => {
-        // 复制成功后，你可以在这里执行一些操作，比如显示提示信息
-        ('文本复制成功！');
-      }).catch(err => {
-        // 如果复制失败，你可以在这里处理错误，比如显示错误提示
-        console.error('复制文本失败：', err);
-      });
+      navigator.clipboard.writeText(markdown)
+        .then(() => this.showToast('文本复制成功！'))
+        .catch(err => console.error('复制文本失败：', err));
     },
-
-
   }
 };
 </script>
@@ -224,6 +173,8 @@ export default {
   /* 不设置最大宽度或固定宽度，允许容器根据内容调整大小 */
   margin-left: 20px;
   margin-right: 20px;
+  margin-bottom: 40px;
+  margin-top: 10px;
 }
 
 
@@ -303,8 +254,7 @@ img.fixed-image {
   width: calc(100% - 20px);
   /* 减去边距的总宽度 */
   display: flex;
-  justify-content: space-evenly;
-  /* 在按钮周围均匀分配空间 */
+  justify-content: space-between;
 }
 
 button {
@@ -355,5 +305,12 @@ button:active {
   /* 禁用鼠标事件 */
   opacity: 0.5;
   /* 降低透明度以表示不可交互 */
+}
+
+.image-container.drag-over {
+  border-color: #007BFF;
+  /* 拖拽时的边框颜色 */
+  background-color: #f0f9ff;
+  /* 可选：拖拽时的背景色 */
 }
 </style>

@@ -120,5 +120,16 @@ chrome.commands.onCommand.addListener((command) => {
 });
 
 chrome.action.onClicked.addListener((tab) => {
-  createOrFocusWindow();
+  // 检查是否已存在窗口，存在则尝试聚焦，否则创建新窗口
+  if (openedWindowId !== null) {
+    chrome.windows.update(openedWindowId, { focused: true }, () => {
+      if (chrome.runtime.lastError) {
+        // 如果窗口不存在，清除openedWindowId并创建新窗口
+        openedWindowId = null;
+        createOrFocusWindow();
+      }
+    });
+  } else {
+    createOrFocusWindow();
+  }
 });

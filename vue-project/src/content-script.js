@@ -131,13 +131,13 @@ function captureRegion(region) {
                     };
                     reader.readAsDataURL(blob);
                 } else {
-                    console.error("Failed to generate blob. No blob received.");
+                    console.log("Failed to generate blob. No blob received.");
                 }
             });
         } else {
-            console.error("Failed to capture screenshot.");
+            console.log("Failed to capture screenshot.");
         }
     }).catch(error => {
-        console.error('html2canvas error:', error);
+        console.log('html2canvas error:', error);
     });
 }
