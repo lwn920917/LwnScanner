@@ -128,10 +128,14 @@ export default {
           if (data?.text) {
             this.showInfo(data.text);
           } else {
-            this.showToast('服务器未返回预期数据');
+            this.showInfo('未检测到文本信息');
           }
         })
-        .catch(error => console.log(`请求失败: ${error}`))
+        .catch(error => {
+          //console.log(`请求失败: ${error}`);
+          // 在这里添加额外的代码
+          this.showInfo(`请求失败: ${error}`);
+        })
         .finally(() => this.isLoading = false);
     },
 

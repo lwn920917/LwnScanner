@@ -116,7 +116,12 @@ function captureRegion(region) {
         x: region.x,
         y: region.y,
         width: region.width,
-        height: region.height
+        height: region.height,
+        scale: 1, // 将截图放大两倍
+        allowTaint: true, // 允许加载跨域资源
+        useCORS: true, // 使用 CORS 来加载跨域图片
+        //backgroundColor: "#ffffff", // 将截图背景设置为白色
+        logging: false // 输出日志信息
     }).then(canvas => {
         // 检查生成的 canvas 是否有效
         if (canvas) {
