@@ -11,9 +11,18 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.action == "captureScreen") {
         console.log("Content script received captureScreen message");
+        removeExistingSidebar();
         createCovers();
     }
 });
+
+function removeExistingSidebar() {
+    const existingSidebar = document.getElementById('customSidebar');
+    if (existingSidebar) {
+        existingSidebar.remove();
+        console.log("Existing sidebar removed.");
+    }
+}
 
 
 function createSidebar() {
@@ -134,8 +143,8 @@ function startCapture(e) {
 
     // 初始化 lx 和 ly
     // 考虑设备像素比调整 lx 和 ly
-    lx = startX * pixelRatio;
-    ly = startY * pixelRatio;
+    lx = startX;
+    ly = startY;
     let viewportWidth = window.innerWidth;
     let viewportHeight = window.innerHeight;
     //console.log(lx, ly, viewportWidth, viewportHeight);
@@ -151,8 +160,8 @@ function resizeCapture(e) {
     updateCovers(startX, startY, endX, endY);
 
     // 考虑设备像素比调整 lwidth 和 lheight
-    lwidth = Math.abs(endX - startX) * pixelRatio;
-    lheight = Math.abs(endY - startY) * pixelRatio;
+    lwidth = Math.abs(endX - startX);
+    lheight = Math.abs(endY - startY);
 }
 
 function endCapture(e) {
@@ -173,8 +182,8 @@ function endCapture(e) {
 
     // 确保在最后更新 lwidth 和 lheight，以防 resizeCapture 没有被触发
     // 在截屏结束时，确保最终的 lwidth 和 lheight 也考虑了设备像素比
-    lwidth = Math.abs(endX - startX) * pixelRatio;
-    lheight = Math.abs(endY - startY) * pixelRatio;
+    lwidth = Math.abs(endX - startX);
+    lheight = Math.abs(endY - startY);
     const selectedRegion2 = {
         x: lx,
         y: ly,
@@ -206,13 +215,29 @@ function endCapture(e) {
 
             const img = new Image();
             img.onload = function () {
-                // 图片加载完成后，img.width 和 img.height 将包含图片的原始宽度和高度
-                const width = img.width;
-                const height = img.height;
-                //console.log(`Width: ${width}, Height: ${height}`);
+                // 图片加载完成后，img.width 和 img.height 包含图片的原始宽度和高度
+                const originalWidth = img.width;
+                const originalHeight = img.height;
+
+                // 定义新的尺寸（例如，将图像缩小到原始宽度和高度的一半）
+                const targetWidth = originalWidth / pixelRatio;
+                const targetHeight = originalHeight / pixelRatio;
+
+                // 创建一个新的canvas元素，用于调整图像尺寸
+                const canvas = document.createElement('canvas');
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext('2d');
+
+                // 将原始图像绘制到新的尺寸上
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+                // 从canvas中获取调整尺寸后的图像URL
+                const resizedImageUrl = canvas.toDataURL();
+                //console.log(`Width: ${targetWidth}, Height: ${targetHeight}`);
 
                 // 现在你可以在这里使用图片的宽度和高度了，例如传递到cropImage函数
-                cropImage(response.screenshotUrl, selectedRegion2, width, height).then(croppedImageUrl => {
+                cropImage(resizedImageUrl, selectedRegion2).then(croppedImageUrl => {
                     setTimeout(() => {
                         chrome.runtime.sendMessage({ action: "capturedImage", dataUrl: croppedImageUrl });
                     }, 1000); // 1000 毫秒 = 1 秒
