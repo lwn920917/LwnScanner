@@ -118,7 +118,7 @@ export default {
     requestServer(base64String) {
       this.infoContent = "";
       this.isLoading = true;
-      fetch('http://39.105.195.249:3334/upload_image', {
+      fetch('https://tslwn.com.cn:3334/upload_image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ base64: base64String })

@@ -23,7 +23,7 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "window_background.js"
   },
   "content_scripts": [
     {
@@ -31,7 +31,7 @@
         "<all_urls>"
       ],
       "js": [
-        "content-script.js",
+        "window_pop.js",
         "html2canvas.min.js"
       ]
     }
@@ -50,8 +50,18 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["app.js"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "index.html",
+        "app.js",
+        "window_pop.js",
+        "chunk-vendors.js",
+        "css/app.css",
+        "main.js",
+        "icons/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

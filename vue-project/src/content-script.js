@@ -3,12 +3,12 @@ let startX, startY, endX, endY;
 let topCover, bottomCover, leftCover, rightCover;
 let isCapturing = false;
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+/* chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.action == "captureRegion") {
         console.log("content receive screen");
         createCovers();
     }
-});
+}); */
 
 function createCovers() {
     // 创建四个覆盖层
