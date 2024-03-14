@@ -24,6 +24,17 @@ function removeExistingSidebar() {
     }
 }
 
+// 监听双击事件，默认截取整个屏幕
+document.addEventListener('dblclick', function() {
+    if (!isCoverActive) return; // 如果没有激活截屏，忽略双击事件
+
+    const fullWidth = window.innerWidth;
+    const fullHeight = window.innerHeight;
+    // 设置截屏区域为整个视口大小
+    updateCovers(0, 0, fullWidth, fullHeight);
+    endCapture(); // 结束截屏，这里假设 endCapture 方法会处理截屏逻辑
+});
+
 
 function createSidebar() {
     const sidebar = document.createElement('div');
@@ -113,6 +124,7 @@ let topCover, bottomCover, leftCover, rightCover;
 let isCapturing = false;
 
 function createCovers() {
+    removeExistingCovers();
     // 创建四个覆盖层
     topCover = document.createElement('div');
     bottomCover = document.createElement('div');
@@ -131,6 +143,33 @@ function createCovers() {
     updateCovers(0, 0, 0, 0);
 
     document.addEventListener('mousedown', startCapture);
+
+    // 添加特定事件监听器
+    document.addEventListener('keydown', handleKeydown);
+}
+
+function removeExistingCovers() {
+    [topCover, bottomCover, leftCover, rightCover].forEach(cover => {
+        if (cover && cover.parentNode) {
+            cover.parentNode.removeChild(cover);
+        }
+    });
+}
+
+function handleKeydown(e) {
+    if (e.key === 'Escape') {
+        discardCapture();
+    }
+}
+
+function discardCapture() {
+    isCapturing = false;
+    document.removeEventListener('mousemove', resizeCapture);
+    document.removeEventListener('mouseup', endCapture);
+    document.removeEventListener('mousedown', startCapture);
+    document.removeEventListener('keydown', handleKeydown);
+
+    removeExistingCovers();
 }
 
 let lx, ly, lwidth, lheight;

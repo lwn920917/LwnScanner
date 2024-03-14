@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Popup</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f3f3;
+            text-align: center;
+        }
+
+        .popup-container {
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            background-color: #ffffff;
+            border-radius: 8px;
+            margin: 10px;
+            max-width: 250px; /* Set a max-width for the popup */
+        }
+
+        .popup-header {
+            background-color: #0056b3;
+            color: #ffffff;
+            padding: 10px 0;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            font-size: 1.2em;
+        }
+
+        .popup-content {
+            margin-top: 15px;
+        }
+
+        .popup-content p {
+            color: #333333;
+            font-size: 0.9em; /* Adjust font size to fit in one line */
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            white-space: nowrap; /* Make the text stay in one line */
+            overflow: hidden; /* Hide overflow */
+            text-overflow: ellipsis; /* Add ellipsis to text that overflows */
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-container">
+        <div class="popup-header">
+            截屏指令
+        </div>
+        <div class="popup-content">
+            <p>使用快捷键Ctrl+Shift+S进行截屏。</p>
+        </div>
+    </div>
+</body>
+</html>
