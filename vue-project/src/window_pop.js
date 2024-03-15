@@ -104,6 +104,24 @@ function styleButton(button) {
     };
 }
 
+chrome.runtime.onMessage.addListener((request, sender) => {
+    if (request.action === "copyText") {
+        navigator.clipboard.writeText(request.text).then(() => {
+            showToast('复制成功');
+            //console.log('复制成功');
+            // 直接使用 chrome.runtime.sendMessage 发送响应消息
+            //chrome.runtime.sendMessage({ action: "copyResponse", success: true, message: '复制成功！' });
+        }).catch(err => {
+            showToast('复制失败');
+            //console.error('复制失败: ', err);
+            // 发送失败消息
+            //chrome.runtime.sendMessage({ action: "copyResponse", success: false, message: '复制失败：' + err });
+        });
+    }
+});
+
+
+
 
 
 
@@ -344,3 +362,47 @@ function updateCovers(startX, startY, endX, endY) {
     rightCover.style.width = `${window.innerWidth - rectLeft - rectWidth}px`;
     rightCover.style.height = `${rectHeight}px`;
 }
+
+
+
+
+function showToast(message) {
+    // 创建 toast 容器
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    // 设置样式以使其看起来像是一个 toast 消息
+    Object.assign(toast.style, {
+        position: 'fixed',
+        top: '20px', // 或者根据你的 UI 来调整位置
+        right: '20px',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '5px',
+        zIndex: 10000, // 确保它在最上层
+        animation: 'fadein 0.5s, fadeout 0.5s 2.5s', // 2.5秒后淡出
+    });
+
+    // 将 toast 添加到文档中
+    document.body.appendChild(toast);
+
+    // 在一段时间后移除 toast
+    setTimeout(() => {
+        toast.remove();
+    }, 1000); // 3秒后移除
+}
+
+// 添加 CSS 动画
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadein {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  
+    @keyframes fadeout {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  `;
+document.head.appendChild(style);

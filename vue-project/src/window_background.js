@@ -15,7 +15,7 @@ function lwnScreen() {
       console.log("cur tab no support");
       return;
     }
-    chrome.tabs.sendMessage(currentTab.id, { action: "captureScreen" }, function(response) {
+    chrome.tabs.sendMessage(currentTab.id, { action: "captureScreen" }, function (response) {
       if (chrome.runtime.lastError) {
         // Handle the error, e.g., by logging it or showing a notification
         console.log("Error sending message: ", chrome.runtime.lastError.message);
@@ -52,20 +52,20 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   }
 });
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "captureWindow") {
-      // 使用 chrome.tabs.captureVisibleTab 获取当前标签页的截图
-      chrome.tabs.captureVisibleTab(null, {format: 'png'}, function(dataUrl) {
-          if (chrome.runtime.lastError) {
-              // 发送错误信息回 content_script.js
-              sendResponse({error: chrome.runtime.lastError.message});
-          } else {
-              // 发送截图的 Data URL 回 content_script.js
-              sendResponse({screenshotUrl: dataUrl});
-          }
-      });
+    // 使用 chrome.tabs.captureVisibleTab 获取当前标签页的截图
+    chrome.tabs.captureVisibleTab(null, { format: 'png' }, function (dataUrl) {
+      if (chrome.runtime.lastError) {
+        // 发送错误信息回 content_script.js
+        sendResponse({ error: chrome.runtime.lastError.message });
+      } else {
+        // 发送截图的 Data URL 回 content_script.js
+        sendResponse({ screenshotUrl: dataUrl });
+      }
+    });
 
-      // 返回 true 以表明将异步发送响应
-      return true;
+    // 返回 true 以表明将异步发送响应
+    return true;
   }
 });

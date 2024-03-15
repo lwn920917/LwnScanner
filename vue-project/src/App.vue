@@ -46,9 +46,18 @@ export default {
   methods: {
     setupChromeExtensionListener() {
       if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.onMessage) {
-        chrome.runtime.onMessage.addListener((request) => {
+        chrome.runtime.onMessage.addListener((request) => { // 确保这里的 request 参数已经声明
           if (request.action === "update-image") {
             this.processImage(request.imageUrl);
+          } else if (request.action === "copyResponse") {
+            // 处理复制响应
+            if (request.success) {
+              //console.log(request.message);
+              this.showToast(request.message); // 显示成功提示
+            } else {
+              //console.error(request.message); // 记录失败信息
+              this.showToast(request.message); // 显示失败提示
+            }
           }
         });
       } else {
@@ -163,9 +172,10 @@ export default {
 
     copyContent() {
       const markdown = this.convertHtmlToMarkdown(this.infoContent);
-      navigator.clipboard.writeText(markdown)
-        .then(() => this.showToast('文本复制成功！'))
-        .catch(err => console.error('复制文本失败：', err));
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      const currentTabId = tabs[0].id;
+      chrome.tabs.sendMessage(currentTabId, { action: "copyText", text: markdown });
+    });
     },
   }
 };
@@ -177,8 +187,10 @@ export default {
   padding: 10px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 20px); /* 调整为视口高度减去上下内边距 */
-  box-sizing: border-box; /* 边框和内边距包含在宽高内 */
+  height: calc(100vh - 20px);
+  /* 调整为视口高度减去上下内边距 */
+  box-sizing: border-box;
+  /* 边框和内边距包含在宽高内 */
   background-color: #eef1f5;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -192,23 +204,27 @@ export default {
   border-radius: 8px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 10px;
-  box-sizing: border-box; /* 确保内边距不会影响到容器尺寸 */
+  box-sizing: border-box;
+  /* 确保内边距不会影响到容器尺寸 */
 }
 
 .image-container {
   flex: 1;
-  max-height: 33vh; /* 限制图片容器的最大高度 */
+  max-height: 33vh;
+  /* 限制图片容器的最大高度 */
 }
 
 .info-viewer {
   flex: 2;
-  padding: 15px; /* 文本区域的内边距 */
+  padding: 15px;
+  /* 文本区域的内边距 */
 }
 
 .button-container {
   display: flex;
   justify-content: center;
-  gap: 20px; /* 按钮之间的间距 */
+  gap: 20px;
+  /* 按钮之间的间距 */
   margin-top: 10px;
 }
 
@@ -216,7 +232,8 @@ button {
   padding: 10px 20px;
   border: none;
   border-radius: 20px;
-  background-color: #007bff; /* 导航栏相同的蓝色 */
+  background-color: #007bff;
+  /* 导航栏相同的蓝色 */
   color: white;
   cursor: pointer;
   font-weight: bold;
@@ -236,4 +253,3 @@ button:active {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>
-
