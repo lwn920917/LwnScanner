@@ -15,8 +15,14 @@ function lwnScreen() {
       console.log("cur tab no support");
       return;
     }
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "captureScreen" });
+    chrome.tabs.sendMessage(currentTab.id, { action: "captureScreen" }, function(response) {
+      if (chrome.runtime.lastError) {
+        // Handle the error, e.g., by logging it or showing a notification
+        console.log("Error sending message: ", chrome.runtime.lastError.message);
+      } else {
+        // Handle the successful response if needed
+        console.log("Message sent successfully", response);
+      }
     });
   });
 }

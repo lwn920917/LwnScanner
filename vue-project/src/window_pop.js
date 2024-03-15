@@ -24,17 +24,6 @@ function removeExistingSidebar() {
     }
 }
 
-// 监听双击事件，默认截取整个屏幕
-document.addEventListener('dblclick', function() {
-    if (!isCoverActive) return; // 如果没有激活截屏，忽略双击事件
-
-    const fullWidth = window.innerWidth;
-    const fullHeight = window.innerHeight;
-    // 设置截屏区域为整个视口大小
-    updateCovers(0, 0, fullWidth, fullHeight);
-    endCapture(); // 结束截屏，这里假设 endCapture 方法会处理截屏逻辑
-});
-
 
 function createSidebar() {
     const sidebar = document.createElement('div');
