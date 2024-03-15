@@ -27,6 +27,7 @@
 <script>
 import { MathpixMarkdownModel } from 'mathpix-markdown-it';
 import TurndownService from 'turndown';
+//import MarkdownIt from 'markdown-it'
 
 export default {
   name: 'App',
@@ -34,6 +35,7 @@ export default {
     return {
       imageUrl: '',
       infoContent: '',
+      infoCopy: '',
       isLoading: false,
       isDragOver: false,
     };
@@ -126,6 +128,7 @@ export default {
 
     requestServer(base64String) {
       this.infoContent = "";
+      this.infoCopy = "";
       this.isLoading = true;
       fetch('https://tslwn.com.cn:3334/upload_image', {
         method: 'POST',
@@ -134,8 +137,8 @@ export default {
       })
         .then(response => response.ok ? response.json() : Promise.reject(`网络错误: ${response.statusText}`))
         .then(data => {
-          if (data?.text) {
-            this.showInfo(data.text);
+          if (data?.markdown) {
+            this.showInfo(data.markdown);
           } else {
             this.showInfo('未检测到文本信息');
           }
@@ -152,8 +155,11 @@ export default {
       alert(message);
     },
 
-    showInfo(serverLatex) {
-      const htmlContent = MathpixMarkdownModel.markdownToHTML(serverLatex, {});
+    showInfo(markdown) {
+      //const mdUtil = new MarkdownIt();
+      //const htmlContent = mdUtil.render(markdown);
+      this.infoCopy = markdown;
+      const htmlContent = MathpixMarkdownModel.markdownToHTML(markdown, {});
       this.infoContent = htmlContent;
     },
 
@@ -171,7 +177,8 @@ export default {
     },
 
     copyContent() {
-      const markdown = this.convertHtmlToMarkdown(this.infoContent);
+      const markdown = this.infoCopy;
+      //this.convertHtmlToMarkdown(this.infoContent);
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       const currentTabId = tabs[0].id;
       chrome.tabs.sendMessage(currentTabId, { action: "copyText", text: markdown });
@@ -251,5 +258,20 @@ button:hover {
 button:active {
   background-color: #004080;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 表格样式 */
+table {
+  border-collapse: collapse; /* 使表格边框合并为单一边框 */
+  width: 100%; /* 可根据需要调整宽度 */
+}
+
+table, th, td {
+  border: 1px solid black; /* 为表格、表头和单元格添加边框 */
+}
+
+th, td {
+  padding: 8px; /* 添加一些内边距使表格内容更易读 */
+  text-align: left; /* 根据需要调整文本对齐方式 */
 }
 </style>

@@ -141,7 +141,7 @@ function createCovers() {
     // 初始化覆盖层样式
     [topCover, bottomCover, leftCover, rightCover].forEach(cover => {
         cover.style.position = 'fixed';
-        cover.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        cover.style.backgroundColor = 'rgba(0,0,0,0.15)';
         cover.style.zIndex = '9999';
         document.body.appendChild(cover);
     });
