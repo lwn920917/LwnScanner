@@ -24,85 +24,115 @@ function removeExistingSidebar() {
     }
 }
 
-
 function createSidebar() {
     const sidebar = document.createElement('div');
     sidebar.id = 'customSidebar';
     sidebar.style.position = 'fixed';
     sidebar.style.top = '0';
-    sidebar.style.right = '5px';
-    sidebar.style.width = '25%'; // 初始宽度为屏幕的四分之一
+    sidebar.style.right = '0';
+    sidebar.style.width = '25%'; // 保持原始宽度
     sidebar.style.height = '100%';
     sidebar.style.backgroundColor = '#ffffff'; // 侧边栏背景色改为白色
-    sidebar.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
+    sidebar.style.boxShadow = '0 0 5px rgba(0, 0, 0, 0.5)';
     sidebar.style.zIndex = '9999';
     sidebar.style.display = 'flex';
-    sidebar.style.flexDirection = 'column';
-
-    const buttonContainer = document.createElement('div');
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.flexDirection = 'row';
-    buttonContainer.style.justifyContent = 'flex-start';
-    buttonContainer.style.padding = '10px 20px'; // 增加内边距
-    buttonContainer.style.backgroundColor = '#007bff'; // 标题栏背景色
-    buttonContainer.style.color = '#ffffff'; // 文本颜色
-    buttonContainer.style.borderBottom = '2px solid #0056b3'; // 底部边框
-    buttonContainer.style.width = '100%'; // 使背景色覆盖整个宽度
-    buttonContainer.style.boxSizing = 'border-box'; // 确保 padding 包含在宽度内
-
-    const closeButton = document.createElement('button');
-    closeButton.innerText = 'X';
-    styleButton(closeButton);
-    closeButton.onclick = function () {
-        sidebar.remove();
-    };
-
-    const expandButton = document.createElement('button');
-    expandButton.innerText = '⇱';
-    styleButton(expandButton);
-    expandButton.style.marginLeft = '10px'; // 按钮之间的间距
-    let isExpanded = false;
-    expandButton.onclick = function () {
-        if (isExpanded) {
-            sidebar.style.width = '25%';
-        } else {
-            sidebar.style.width = '100%';
-        }
-        isExpanded = !isExpanded;
-    };
-
-    buttonContainer.appendChild(closeButton);
-    buttonContainer.appendChild(expandButton);
+    sidebar.style.flexDirection = 'column';// 仅在左上角添加边框
+    sidebar.style.borderTop = '1px solid rgba(211, 211, 211, 0.5)'; // 使用浅灰色并添加透明度
+    sidebar.style.borderLeft = '1px solid rgba(211, 211, 211, 0.5)'; // 使用浅灰色并添加透明度
 
     const iframe = document.createElement('iframe');
-    iframe.style.flexGrow = '1';
-    iframe.style.width = '100%';
-    iframe.style.border = 'none';
+    iframe.style.height = '100%'; // 高度为100%
+    iframe.style.width = '100%'; // 宽度为100%
+    iframe.style.border = 'none'; // 无边框
     iframe.src = chrome.runtime.getURL('index.html');
 
-    sidebar.appendChild(buttonContainer);
     sidebar.appendChild(iframe);
 
     document.body.appendChild(sidebar);
+
+
+    // 创建并添加按钮容器
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.position = 'absolute';
+    buttonContainer.style.top = '0';
+    buttonContainer.style.right = '0';
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.flexDirection = 'row';
+
+
+
+    // 添加上传图片的按钮
+    addButton('上传', buttonContainer, () => {
+        // 这里写上传图片的逻辑
+        //console.log('点击了上传图片按钮');
+        chrome.runtime.sendMessage({ action: "upload" });
+        // 您可能需要打开一个文件选择对话框，然后处理选择的文件
+    }, 'icons/upload.svg'); // 假设您有一个上传图标叫做 upload.svg
+    // 使用addButton创建展开/缩小按钮，并保留对图标的引用
+    const toggleIcon = addButton('展开', buttonContainer, () => {
+        const isFullWidth = sidebar.style.width === '100%';
+        sidebar.style.width = isFullWidth ? '25%' : '100%';
+        // 根据侧边栏的宽度切换图标
+        toggleIcon.src = chrome.runtime.getURL(isFullWidth ? 'icons/suoxiao.svg' : 'icons/fangda.svg');
+    }, 'icons/suoxiao.svg'); // 默认展示的图标
+    // 添加按钮
+    addButton('关闭', buttonContainer, () => sidebar.remove(), 'icons/close.svg');
+
+    sidebar.appendChild(buttonContainer);
+
+
+    // 创建并添加按钮容器到侧边栏底部
+    const bottomButtonContainer = document.createElement('div');
+    bottomButtonContainer.style.position = 'absolute';
+    bottomButtonContainer.style.bottom = '20px';
+    bottomButtonContainer.style.left = '10px';
+    bottomButtonContainer.style.display = 'flex';
+    bottomButtonContainer.style.flexDirection = 'row';
+    bottomButtonContainer.style.justifyContent = 'flex-start'; // 使按钮靠左对齐
+
+    // 添加“复制”按钮
+    addButton('复制', bottomButtonContainer, () => {
+        // 这里写复制文本到剪贴板的逻辑
+        chrome.runtime.sendMessage({ action: "copy" });
+    }, 'icons/copy.svg'); // 假设你有一个复制图标叫做 copy.svg
+
+    // 将按钮容器添加到侧边栏
+    sidebar.appendChild(bottomButtonContainer);
 }
 
-function styleButton(button) {
-    button.style.fontSize = '16px';
-    button.style.padding = '10px 15px';
-    button.style.border = 'none';
-    button.style.borderRadius = '5px';
+function addButton(text, container, onClick, iconFilename) {
+    const button = document.createElement('button');
+    button.onclick = onClick;
     button.style.cursor = 'pointer';
-    button.style.backgroundColor = '#0056b3'; // 按钮背景色稍微深一点
-    button.style.color = '#ffffff';
-    button.style.transition = 'background-color 0.3s';
+    button.style.background = 'none';
+    button.style.border = 'none';
+    button.style.padding = '5px';
+    button.style.margin = '0'; // 按钮间的间隔
+    button.style.outline = 'none'; // 移除焦点时的轮廓
+    button.style.boxSizing = 'border-box'; // 添加border-box
 
+    // 添加鼠标悬停时的样式
     button.onmouseover = function () {
-        this.style.backgroundColor = '#003d7a'; // 深蓝色背景，悬停效果
+        this.style.backgroundColor = 'rgba(128, 128, 128, 0.2)';
     };
     button.onmouseout = function () {
-        this.style.backgroundColor = '#0056b3'; // 恢复原始背景色
+        this.style.backgroundColor = 'transparent';
     };
+
+    const img = document.createElement('img');
+    img.src = chrome.runtime.getURL(iconFilename);
+    img.alt = text;
+    img.style.width = '20px'; // 设置图标大小
+    img.style.height = '20px';
+    img.style.display = 'block'; // 防止图片下方有空间
+
+    button.appendChild(img);
+    container.appendChild(button);
+    return img;
 }
+
+
+
 
 chrome.runtime.onMessage.addListener((request, sender) => {
     if (request.action === "copyText") {

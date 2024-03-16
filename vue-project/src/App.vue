@@ -5,8 +5,7 @@
         @dragover.prevent="handleDragOver" @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave"
         @drop.prevent="handleDrop">
         <img v-if="imageUrl" :src="imageUrl" alt="截屏Alt+s/本地" class="fixed-image">
-        <div v-else class="no-image-text">
-          此区域支持粘贴、拖拽、本地、截屏(Ctrl+Shift+S)<br>
+        <div v-else class="no-image-text"><br>
         </div>
       </div>
 
@@ -14,11 +13,6 @@
         <div v-if="isLoading">Loading...</div>
         <div class="content-wrapper" v-else-if="infoContent" v-html="infoContent"></div>
         <div v-else></div>
-      </div>
-
-      <div class="button-container">
-        <button @click="localAction">本地</button>
-        <button @click="copyContent">复制</button>
       </div>
     </div>
   </div>
@@ -60,6 +54,10 @@ export default {
               //console.error(request.message); // 记录失败信息
               this.showToast(request.message); // 显示失败提示
             }
+          } else if (request.action === "upload") {
+            this.localAction();
+          } else if (request.action === "copy") {
+            this.copyContent();
           }
         });
       } else {
@@ -201,74 +199,42 @@ export default {
 
 <style>
 .container {
-  padding: 10px;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 20px);
-  /* 调整为视口高度减去上下内边距 */
-  box-sizing: border-box;
   /* 边框和内边距包含在宽高内 */
-  background-color: #eef1f5;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.image-container,
-.info-viewer {
-  overflow: auto;
-  border: 1px solid #ccc;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 10px;
-  box-sizing: border-box;
-  /* 确保内边距不会影响到容器尺寸 */
 }
 
 .image-container {
   flex: 1;
   max-height: 33vh;
-  /* 限制图片容器的最大高度 */
+  overflow: hidden;
+  background-color: #fff;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+  /* 在底部添加一条线 */
+}
+
+.fixed-image {
+  max-width: 100%;
+  /* 限制图片宽度，保持它在容器内 */
+  max-height: 100%;
+  /* 限制图片高度，防止它超出容器 */
+  display: block;
+  /* 防止图片下方有空隙 */
+  margin: 0 auto;
+  /* 居中显示图片 */
 }
 
 .info-viewer {
+  position: relative;
+  /* 添加相对定位 */
   flex: 2;
-  padding: 15px;
-  /* 文本区域的内边距 */
+  overflow: auto;
+  background-color: #fff;
 }
 
-.button-container {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  /* 按钮之间的间距 */
-  margin-top: 10px;
-}
-
-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 20px;
-  background-color: #007bff;
-  /* 导航栏相同的蓝色 */
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-button:hover {
-  background-color: #0056b3;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-button:active {
-  background-color: #004080;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
 
 /* 表格样式 */
 table {
