@@ -159,7 +159,17 @@ export default {
       //const mdUtil = new MarkdownIt();
       //const htmlContent = mdUtil.render(markdown);
       this.infoCopy = markdown;
-      const htmlContent = MathpixMarkdownModel.markdownToHTML(markdown, {});
+      const htmlContent = MathpixMarkdownModel.markdownToHTML(markdown,
+        {
+          htmlTags: true,
+          breaks: true,
+          linkify: true,
+          emoji: true,
+          mathjax: true,
+          sanitize: true,
+          highlightCode: true,
+          langPrefix: 'language-'
+        });
       this.infoContent = htmlContent;
     },
 
@@ -179,10 +189,10 @@ export default {
     copyContent() {
       const markdown = this.infoCopy;
       //this.convertHtmlToMarkdown(this.infoContent);
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      const currentTabId = tabs[0].id;
-      chrome.tabs.sendMessage(currentTabId, { action: "copyText", text: markdown });
-    });
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        const currentTabId = tabs[0].id;
+        chrome.tabs.sendMessage(currentTabId, { action: "copyText", text: markdown });
+      });
     },
   }
 };
@@ -262,16 +272,24 @@ button:active {
 
 /* 表格样式 */
 table {
-  border-collapse: collapse; /* 使表格边框合并为单一边框 */
-  width: 100%; /* 可根据需要调整宽度 */
+  border-collapse: collapse;
+  /* 使表格边框合并为单一边框 */
+  width: 100%;
+  /* 可根据需要调整宽度 */
 }
 
-table, th, td {
-  border: 1px solid black; /* 为表格、表头和单元格添加边框 */
+table,
+th,
+td {
+  border: 1px solid black;
+  /* 为表格、表头和单元格添加边框 */
 }
 
-th, td {
-  padding: 8px; /* 添加一些内边距使表格内容更易读 */
-  text-align: left; /* 根据需要调整文本对齐方式 */
+th,
+td {
+  padding: 8px;
+  /* 添加一些内边距使表格内容更易读 */
+  text-align: left;
+  /* 根据需要调整文本对齐方式 */
 }
 </style>
