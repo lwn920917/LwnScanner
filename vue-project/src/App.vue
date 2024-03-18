@@ -22,6 +22,9 @@
 import { MathpixMarkdownModel } from 'mathpix-markdown-it';
 import TurndownService from 'turndown';
 //import MarkdownIt from 'markdown-it'
+import { processImageToMarkdown } from './imageProcessor.js';
+
+
 
 export default {
   name: 'App',
@@ -69,7 +72,10 @@ export default {
       this.imageUrl = imageDataUrl;
       if (imageDataUrl) {
         const base64String = imageDataUrl.split(',')[1];
-        this.requestServer(base64String);
+        this.requestServer(base64String).catch(error => {
+          console.error('处理图像时发生错误:', error);
+          // 在这里添加你的错误处理逻辑，例如更新UI通知用户错误发生
+        });
       }
     },
 
@@ -124,36 +130,66 @@ export default {
       }
     },
 
-    requestServer(base64String) {
+    /*  requestServer(base64String) {
+       this.infoContent = "";
+       this.infoCopy = "";
+       this.isLoading = true;
+       fetch('https://tslwn.com.cn:3334/upload_image', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ base64: base64String })
+       })
+         .then(response => response.ok ? response.json() : Promise.reject(`网络错误: ${response.statusText}`))
+         .then(data => {
+           if (data?.markdown) {
+             this.showInfo(data.markdown);
+           } else {
+             this.showInfo('未检测到文本信息');
+           }
+         })
+         .catch(error => {
+           //console.log(`请求失败: ${error}`);
+           // 在这里添加额外的代码
+           this.showInfo(`请求失败: ${error}`);
+         })
+         .finally(() => this.isLoading = false);
+     }, */
+
+    async requestServer(base64String) {
       this.infoContent = "";
       this.infoCopy = "";
       this.isLoading = true;
-      fetch('https://tslwn.com.cn:3334/upload_image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64: base64String })
-      })
-        .then(response => response.ok ? response.json() : Promise.reject(`网络错误: ${response.statusText}`))
-        .then(data => {
-          if (data?.markdown) {
-            this.showInfo(data.markdown);
-          } else {
-            this.showInfo('未检测到文本信息');
-          }
-        })
-        .catch(error => {
-          //console.log(`请求失败: ${error}`);
-          // 在这里添加额外的代码
-          this.showInfo(`请求失败: ${error}`);
-        })
-        .finally(() => this.isLoading = false);
+
+      try {
+        // 使用 processImageToMarkdown 函数处理图片并获取 Markdown
+        const markdown = await processImageToMarkdown(base64String);
+
+        // 显示获取到的 Markdown 或者相应的提示信息
+        if (typeof markdown === 'string') {
+          // 如果是字符串，直接显示
+          this.showInfo(markdown);
+        } else {
+          // 如果不是字符串（可能是一个包含错误信息的对象），则处理错误情况
+
+          this.showInfo(`未检测出文本信息`);
+        }
+      } catch (error) {
+        // 处理过程中的错误
+        console.error('请求失败:', error);
+        this.showInfo(`请求失败: ${error.message || error}`);
+      } finally {
+        // 无论成功还是失败，最后都要停止加载状态
+        this.isLoading = false;
+      }
     },
+
 
     showToast(message) {
       alert(message);
     },
 
     showInfo(markdown) {
+      console.log(markdown + "----");
       //const mdUtil = new MarkdownIt();
       //const htmlContent = mdUtil.render(markdown);
       this.infoCopy = markdown;
